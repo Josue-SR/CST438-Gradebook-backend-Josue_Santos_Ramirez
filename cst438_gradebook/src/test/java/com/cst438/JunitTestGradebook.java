@@ -12,8 +12,11 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import com.cst438.domain.Assignment;
+import com.cst438.domain.AssignmentDTO;
 import com.cst438.domain.AssignmentGrade;
 import com.cst438.domain.AssignmentGradeRepository;
+import com.cst438.domain.AssignmentRepository;
 import com.cst438.domain.GradeDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -32,6 +35,9 @@ public class JunitTestGradebook {
 	
 	@Autowired
 	private AssignmentGradeRepository assignmentGradeRepository;
+	
+	@Autowired
+	private AssignmentRepository assignmentRepository;
 
 	/* 
 	 * Enter a new grade for student test4@csumb.edu for assignment id=1
@@ -116,6 +122,65 @@ public class JunitTestGradebook {
 
 
 	}
+	
+	/* 
+	 * List existing assignments
+	 */
+	@Test
+	public void listAssignments() throws Exception {
+		MockHttpServletResponse response;
+
+		response = mvc.perform(MockMvcRequestBuilders.get("/assignment").accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+
+		assertEquals(200, response.getStatus());
+		// There is 4 elements in the database so the length should be returning a list with size 2
+		assertEquals(2, new ObjectMapper().readValue(response.getContentAsString(), AssignmentDTO[].class).length);
+
+	}
+	
+	@Test
+	public void createAssignment() throws Exception {
+		MockHttpServletResponse response;
+
+		AssignmentDTO asDTO = new AssignmentDTO(4,"Assignment 2", "2023-09-19", "CST 438 - Software Engineering", 31045);
+		response = mvc.perform(MockMvcRequestBuilders.post("/assignment").accept(MediaType.APPLICATION_JSON)
+				.content(asJsonString(asDTO)).contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse();
+		
+		Assignment as = assignmentRepository.findById(3).get();
+		assertEquals(as.getName().contentEquals("Assignment 2"),true);
+
+	}
+	
+	@Test
+	public void updateAssignment() throws Exception {
+		MockHttpServletResponse response;
+
+		AssignmentDTO asDTO = new AssignmentDTO(4,"Assignment 3", "2023-09-19", "CST 438 - Software Engineering", 31045);
+		response = mvc.perform(MockMvcRequestBuilders.put("/assignment/3").accept(MediaType.APPLICATION_JSON)
+				.content(asJsonString(asDTO)).contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse();
+		
+		Assignment as = assignmentRepository.findById(3).get();
+		assertEquals(as.getName().contentEquals("Assignment 3"),true);
+
+	}
+	
+	@Test
+	public void deleteAssignment() throws Exception {
+		MockHttpServletResponse response;
+
+		response = mvc.perform(MockMvcRequestBuilders.delete("/assignment/2?force=true").accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+
+		assertEquals(200, response.getStatus());
+		
+		Assignment as = assignmentRepository.findById(2).orElse(null);
+		// if {as} is null then the id was deleted
+		assertEquals(as, null);
+
+	}
+	
+	
 
 	private static String asJsonString(final Object obj) {
 		try {
