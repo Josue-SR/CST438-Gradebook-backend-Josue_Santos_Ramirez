@@ -78,7 +78,7 @@ public class AssignmentController {
 	
 	// CREATE
 	@PostMapping("/assignment")
-	public void createAssignment (@RequestBody AssignmentDTO asDTO) {
+	public int createAssignment (@RequestBody AssignmentDTO asDTO) {
 		Assignment as = new Assignment();
 		as.setName(asDTO.assignmentName());
 		as.setDueDate(Date.valueOf(asDTO.dueDate()));
@@ -89,6 +89,8 @@ public class AssignmentController {
 	    	
 		as.setCourse(course);
 		assignmentRepository.save(as);
+		
+		return as.getId();
 	    	
 	}
 	
