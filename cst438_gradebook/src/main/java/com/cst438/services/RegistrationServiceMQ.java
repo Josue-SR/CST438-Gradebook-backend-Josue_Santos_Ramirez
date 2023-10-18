@@ -6,8 +6,11 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.cst438.domain.Course;
 import com.cst438.domain.FinalGradeDTO;
@@ -33,9 +36,15 @@ public class RegistrationServiceMQ implements RegistrationService {
 	public RegistrationServiceMQ() {
 		System.out.println("MQ registration service ");
 	}
-
-
+	
 	Queue registrationQueue = new Queue("registration-queue", true);
+
+
+    @Bean
+    Queue createQueue() {
+        return new Queue("gradebook-queue");
+    }
+
 
 	/*
 	 * Receive message for student added to course
@@ -47,6 +56,19 @@ public class RegistrationServiceMQ implements RegistrationService {
 		System.out.println("Gradebook has received: "+message);
 
 		//TODO  deserialize message to EnrollmentDTO and update database
+		EnrollmentDTO enrollmentDTO = fromJsonString(message, EnrollmentDTO.class);
+		
+		Course course  = courseRepository.findById(enrollmentDTO.courseId()).orElseThrow (
+				() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course does not exist")
+        );
+		
+		Enrollment enrollment = new Enrollment();
+		
+		enrollment.setCourse(course);
+		enrollment.setStudentEmail(enrollmentDTO.studentEmail());
+		enrollment.setStudentName(enrollmentDTO.studentName());
+		
+		enrollmentRepository.save(enrollment);
 	}
 
 	/*
@@ -58,6 +80,7 @@ public class RegistrationServiceMQ implements RegistrationService {
 		System.out.println("Start sendFinalGrades "+course_id);
 
 		//TODO convert grades to JSON string and send to registration service
+		rabbitTemplate.convertAndSend(registrationQueue.getName(), asJsonString(grades));
 		
 	}
 	

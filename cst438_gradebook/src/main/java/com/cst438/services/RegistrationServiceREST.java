@@ -3,12 +3,14 @@ package com.cst438.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.cst438.domain.FinalGradeDTO;
 import com.cst438.domain.Course;
@@ -36,7 +38,8 @@ public class RegistrationServiceREST implements RegistrationService {
 	public void sendFinalGrades(int course_id , FinalGradeDTO[] grades) { 
 		
 		//TODO use restTemplate to send final grades to registration service
-		
+		System.out.println("GradeBook sendFinalGrades "+ course_id);
+		restTemplate.put(registration_url + "/" + course_id, grades);
 	}
 	
 	@Autowired
@@ -59,7 +62,20 @@ public class RegistrationServiceREST implements RegistrationService {
 		System.out.println("GradeBook addEnrollment "+enrollmentDTO);
 		
 		//TODO remove following statement when complete.
-		return null;
+		Enrollment enrollment = new Enrollment();
+		enrollment.setStudentEmail(enrollmentDTO.studentEmail());
+	    enrollment.setStudentName(enrollmentDTO.studentName());
+	    
+	    Course course  = courseRepository.findById(enrollmentDTO.courseId()).orElseThrow (
+				() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course does not exist")
+        );
+	    
+	    enrollment.setCourse(course);
+	    
+	    enrollmentRepository.save(enrollment);
+	    
+	    
+		return enrollmentDTO;
 		
 	}
 
