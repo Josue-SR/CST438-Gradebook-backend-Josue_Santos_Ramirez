@@ -1,5 +1,6 @@
 package com.cst438.controllers;
 
+import java.security.Principal;
 import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
@@ -39,9 +40,9 @@ public class AssignmentController {
 	AssignmentGradeRepository assignmentGradeRepository;
 	
 	@GetMapping("/assignment")
-	public AssignmentDTO[] getAllAssignmentsForInstructor() {
+	public AssignmentDTO[] getAllAssignmentsForInstructor(Principal principal) {
 		// get all assignments for this instructor
-		String instructorEmail = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		String instructorEmail = principal.getName();  // user name (should be instructor's email)
 		List<Assignment> assignments = assignmentRepository.findByEmail(instructorEmail);
 		AssignmentDTO[] result = new AssignmentDTO[assignments.size()];
 		for (int i=0; i<assignments.size(); i++) {
@@ -61,10 +62,14 @@ public class AssignmentController {
 	
 	// READ
 	@GetMapping("/assignment/{id}")
-	public AssignmentDTO getOneAssignment(@PathVariable("id") int as_id) {
+	public AssignmentDTO getOneAssignment(Principal principal, @PathVariable("id") int as_id) {
 		Assignment as = assignmentRepository.findById(as_id).orElseThrow (
 				() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment does not exist")
 		);
+		
+		if (!as.getCourse().getInstructor().equals(principal.getName())) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		}
 		
 		AssignmentDTO dto = new AssignmentDTO(
 				as.getId(), 
@@ -78,16 +83,22 @@ public class AssignmentController {
 	
 	// CREATE
 	@PostMapping("/assignment")
-	public int createAssignment (@RequestBody AssignmentDTO asDTO) {
+	public int createAssignment (Principal principal, @RequestBody AssignmentDTO asDTO) {
 		Assignment as = new Assignment();
 		as.setName(asDTO.assignmentName());
 		as.setDueDate(Date.valueOf(asDTO.dueDate()));
+		
 		
 		Course course = courseRepository.findById(asDTO.courseId()).orElseThrow (
 					() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course does not exist")
 	    );
 	    	
 		as.setCourse(course);
+		
+		if (!as.getCourse().getInstructor().equals(principal.getName())) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		}
+		
 		assignmentRepository.save(as);
 		
 		return as.getId();
@@ -96,12 +107,16 @@ public class AssignmentController {
 	
 	// DELETE
 	@DeleteMapping("/assignment/{assignment_id}")
-	public void deleteCourse(@PathVariable("assignment_id") int as_id,
+	public void deleteCourse(Principal principal,@PathVariable("assignment_id") int as_id,
 			                 @RequestParam("force") Optional<String> force) {
 		boolean hasForce = false;
 		Assignment as = assignmentRepository.findById(as_id).orElseThrow (
 				() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment does not exist")
 		);
+		
+		if (!as.getCourse().getInstructor().equals(principal.getName())) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		}
 	    
 		if(force.get().equals("true")) {
 			assignmentRepository.delete(as);
@@ -122,10 +137,11 @@ public class AssignmentController {
 	
 	// UPDATE
 	@PutMapping("/assignment/{id}")
-	public void updateAssignment(@PathVariable("id") int as_id, @RequestBody AssignmentDTO asDTO) {
+	public void updateAssignment(Principal principal, @PathVariable("id") int as_id, @RequestBody AssignmentDTO asDTO) {
 		Assignment as = assignmentRepository.findById(as_id).orElseThrow (
 				() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment does not exist")
 		);
+		
 		
 		as.setName(asDTO.assignmentName());
 		as.setDueDate(Date.valueOf(asDTO.dueDate()));
@@ -136,9 +152,14 @@ public class AssignmentController {
 		
 		as.setCourse(course);
 		
+		if (!as.getCourse().getInstructor().equals(principal.getName())) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		}
+		
 		assignmentRepository.save(as);
     	
 		
 	}
+	
 	
 }
