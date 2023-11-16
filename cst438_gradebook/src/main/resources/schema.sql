@@ -1,3 +1,5 @@
+
+
 CREATE TABLE user (
   user varchar(255) DEFAULT NULL,
   password varchar(255) NOT NULL,
