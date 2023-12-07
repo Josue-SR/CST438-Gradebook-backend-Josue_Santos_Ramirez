@@ -1,5 +1,6 @@
 package com.cst438.controllers;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,9 +49,9 @@ public class GradeBookController {
 	 * id - assignment id
 	 */
 	@GetMapping("/gradebook/{id}")
-	public GradeDTO[] getGradebook(@PathVariable("id") Integer assignmentId  ) {
-		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
-		Assignment assignment = checkAssignment(assignmentId, email);
+	public GradeDTO[] getGradebook(Principal principal, @PathVariable("id") Integer assignmentId  ) {
+		String email = principal.getName();  // user name (should be instructor's email) 
+		Assignment assignment = checkAssignment(principal, assignmentId, email);
 		// get the enrollments for the course
 		// for each enrollment, get the current grade for assignment, 
 		// if the student does not have a current grade, create an empty grade
@@ -68,6 +69,7 @@ public class GradeBookController {
 		}
 		return grades;
 	}
+
 	
 	/* 
 	 * calculate final grades.  Send final grades to registration to post to student enrollments
@@ -75,10 +77,10 @@ public class GradeBookController {
 	 */
 	@PostMapping("/course/{course_id}/finalgrades")
 	@Transactional
-	public void calcFinalGrades(@PathVariable int course_id) {
+	public void calcFinalGrades(Principal principal, @PathVariable int course_id) {
 		System.out.println("Gradebook - calcFinalGrades for course " + course_id);
 		// check that this request is from the course instructor 
-		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		String email = principal.getName();  // user name (should be instructor's email) 
 		Course c = courseRepository.findById(course_id).orElse(null);
 		if (!c.getInstructor().equals(email)) {
 			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
@@ -108,9 +110,9 @@ public class GradeBookController {
 	 */
 	@PutMapping("/gradebook/{id}")
 	@Transactional
-	public void updateGradebook (@RequestBody GradeDTO[] grades, @PathVariable("id") Integer assignmentId ) {
-		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
-		checkAssignment(assignmentId, email);  // check that user name matches instructor email of the course.
+	public void updateGradebook (Principal principal, @RequestBody GradeDTO[] grades, @PathVariable("id") Integer assignmentId ) {
+		String email = principal.getName();  // user name (should be instructor's email) 
+		checkAssignment(principal, assignmentId, email);  // check that user name matches instructor email of the course.
 		// for each grade, update the assignment grade in database 		
 		for (GradeDTO g : grades) {
 			System.out.printf("%s\n", g.toString());
@@ -125,7 +127,7 @@ public class GradeBookController {
 	}
 
 	
-	private Assignment checkAssignment(int assignmentId, String email) {
+	private Assignment checkAssignment(Principal principal, int assignmentId, String email) {
 		// get assignment 
 		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
 		if (assignment == null) {

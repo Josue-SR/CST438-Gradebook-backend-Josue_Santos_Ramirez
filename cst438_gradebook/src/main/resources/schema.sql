@@ -1,3 +1,12 @@
+
+
+CREATE TABLE user (
+  user varchar(255) DEFAULT NULL,
+  password varchar(255) NOT NULL,
+  role varchar(255),
+  PRIMARY KEY (user)
+);
+
 CREATE TABLE course (
   course_id int NOT NULL,
   instructor varchar(255) DEFAULT NULL,
